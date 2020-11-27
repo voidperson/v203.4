@@ -40,7 +40,9 @@ public class UserPool {
         outPacket.encodeInt(0); // nNameTagMark
         outPacket.encodeByte(0); //idk
         outPacket.encodeInt(0);// Unknown
+
         tsm.encodeForRemote(outPacket, tsm.getCurrentStats());
+
         outPacket.encodeShort(chr.getJob());
         outPacket.encodeShort(cs.getSubJob());
         outPacket.encodeInt(chr.getTotalChuc());

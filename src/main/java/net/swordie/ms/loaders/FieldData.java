@@ -13,13 +13,13 @@ import net.swordie.ms.ServerConstants;
 import org.apache.log4j.LogManager;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import org.hibernate.query.Query;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import net.swordie.ms.util.Position;
 import net.swordie.ms.util.Util;
 import net.swordie.ms.util.XMLApi;
 
+import javax.persistence.Query;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +44,7 @@ public class FieldData {
         Util.makeDirIfAbsent(dir);
         for (Field field : getFields()) {
             File file = new File(String.format("%s/%d.dat", dir, field.getId()));
+            //bug("< " + file.getName());
             try (DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file))) {
                 dataOutputStream.writeInt(field.getId());
                 dataOutputStream.writeInt(field.getFieldType().getVal());
@@ -146,10 +147,12 @@ public class FieldData {
         File dir = new File(wzDir);
         File[] files = dir.listFiles();
         for (File file : files) {
+            //log.debug("> " + file.getName());
             if (file.listFiles() == null) {
                 continue;
             }
             for (File mapFile : file.listFiles()) {
+                //log.debug("> " + file.getName() + " >> " + mapFile.getName());
                 Document doc = XMLApi.getRoot(mapFile);
                 Node node = XMLApi.getAllChildren(doc).get(0);
                 if (node == null) {
@@ -520,8 +523,7 @@ public class FieldData {
         return fields;
     }
 
-    public static List<Integer> getWorldMapFields() {
-        return worldMapFields; }
+    public static List<Integer> getWorldMapFields() { return worldMapFields; }
 
     public static Field getFieldById(int id) {
         for (Field f : getFields()) {
@@ -530,6 +532,36 @@ public class FieldData {
             }
         }
         return getFieldFromFile(id);
+    }
+
+
+    public static void loadNPCFromSQL() {
+
+        Session session = DatabaseManager.getSession();
+        Transaction transaction = session.beginTransaction();
+
+        Query loadNpcQuery = session.createNativeQuery("SELECT * FROM npc");
+
+        List<Object[]> results = loadNpcQuery.getResultList();
+
+        for(Object[] r : results) {
+            Npc n = NpcData.getNpcDeepCopyById((Integer)r[1]);
+            Field f = getFieldById( (Integer)r[2] );
+
+            Position p = new Position();
+            p.setX((Integer)r[3]);
+            p.setY((Integer)r[4]);
+
+            n.setPosition(p);
+            n.setCy((Integer)r[5]);
+            n.setRx0((Integer)r[6]);
+            n.setRx1((Integer)r[7]);
+            n.setFh((Integer)r[8]);
+
+            f.addLife(n);
+        }
+        transaction.commit();
+        session.close();
     }
 
     private static Field getFieldFromFile(int id) {
@@ -666,6 +698,10 @@ public class FieldData {
         File dir = new File(wzDir);
         File[] files = dir.listFiles();
         for (File file : files) {
+            //log.debug("> " + file.getName());
+            if (file.getName().contains("SearchExcept"))    {
+                continue; //TODO: [HEX] Figure out what SearchExcept is
+            }
             Document doc = XMLApi.getRoot(file);
             Node node = XMLApi.getAllChildren(doc).get(0);
             if (node == null) {
@@ -709,37 +745,6 @@ public class FieldData {
         }
         log.info(String.format("Loaded world map fields from data file in %dms.", System.currentTimeMillis() - start));
     }
-
-
-    public static void loadNPCFromSQL() {
-
-        Session session = DatabaseManager.getSession();
-        Transaction transaction = session.beginTransaction();
-
-        Query loadNpcQuery = session.createNativeQuery("SELECT * FROM npc");
-
-        List<Object[]> results =loadNpcQuery.getResultList();
-
-        for(Object[] r : results) {
-            Npc n = NpcData.getNpcDeepCopyById((Integer)r[1]);
-            Field f = getFieldById( (Integer)r[2] );
-
-            Position p = new Position();
-            p.setX((Integer)r[3]);
-            p.setY((Integer)r[4]);
-
-            n.setPosition(p);
-            n.setCy((Integer)r[5]);
-            n.setRx0((Integer)r[6]);
-            n.setRx1((Integer)r[7]);
-            n.setFh((Integer)r[8]);
-
-            f.addLife(n);
-        }
-        transaction.commit();
-        session.close();
-    }
-
 
     public static void generateDatFiles() {
         log.info("Started generating field data.");

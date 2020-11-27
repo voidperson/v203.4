@@ -167,6 +167,7 @@ public class ItemData {
     public static void saveEquips(String dir) {
         Util.makeDirIfAbsent(dir);
         for (Equip equip : getEquips().values()) {
+            //log.debug("< " + equip.getTitle());
             try (DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(dir + "/" + equip.getItemId() + ".dat"))) {
                 dataOutputStream.writeInt(equip.getItemId());
                 dataOutputStream.writeUTF(equip.getiSlot());
@@ -244,6 +245,10 @@ public class ItemData {
             File subDir = new File(String.format("%s/%s", wzDir, subMap));
             File[] files = subDir.listFiles();
             for (File file : files) {
+                //log.debug("> " + file.getName());
+                if (file.getName().contains("LinkCashWeaponData"))  { //TODO [HEX]: Figure out what this meme is
+                    continue;
+                }
                 Node node = XMLApi.getRoot(file);
                 List<Node> nodes = XMLApi.getAllChildren(node);
                 for (Node mainNode : nodes) {
@@ -426,9 +431,9 @@ public class ItemData {
                                         options.set(index, Integer.parseInt(optionAttr.get("value")));
                                     }
                                     break;
-                                    case "effectItemID":
-                                        equip.setEffectItemID(Integer.parseInt(value));
-                                        break;
+                                case "effectItemID":
+                                    equip.setEffectItemID(Integer.parseInt(value));
+                                    break;
                             }
                             for (int i = 0; i < 7 - options.size(); i++) {
                                 options.add(0);
@@ -845,6 +850,7 @@ public class ItemData {
             File subDir = new File(String.format("%s/%s", wzDir, subMap));
             File[] files = subDir.listFiles();
             for (File file : files) {
+                //log.debug("> " + file.getName());
                 Document doc = XMLApi.getRoot(file);
                 Node node = doc;
                 List<Node> nodes = XMLApi.getAllChildren(node);
@@ -1341,7 +1347,8 @@ public class ItemData {
                                 if (value == null) {
                                     continue;
                                 }
-                                value = value.replace("\\r\\n", "").replace("[R8]", "");
+                                value = value.replace("\r", "").replace("\n", "").replace("[R8]", "");
+                                //value = value.replace("\\r\\n", "").replace("[R8]", "");
                                 switch (name) {
                                     case "count":
                                         iri.setCount(Integer.parseInt(value));
